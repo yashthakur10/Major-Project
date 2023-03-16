@@ -1,0 +1,352 @@
+#include <ArduinoBLE.h>
+#include <Arduino_LSM9DS1.h>
+#include <Arduino_HTS221.h>
+
+
+/*
+#define MAXIMWIRE_EXTERNAL_PULLUP
+#include <MaximWire.h>
+#define PIN_BUS 10
+MaximWire::Bus bus(PIN_BUS);
+MaximWire::DS18B20 device;
+*/
+
+//disable USB connection for lower power consumptions....hence, no usb serial unless uncomments
+
+
+int main(void)
+{
+  init();
+  initVariant();
+
+//Remove USB CDC feature
+/*
+#if defined(SERIAL_CDC)
+  PluggableUSBD().begin();
+  SerialUSB.begin(115200);
+ #endif
+*/
+  setup();
+
+  for (;;) {
+    loop();
+    if (arduino::serialEventRun) arduino::serialEventRun();
+  }
+
+  return 0;
+}
+
+
+
+//statements
+float temperature;
+float temp_ds18b20;
+int noDec_temp;
+double pitch;
+int bigAngle;
+int sendAngle;
+
+
+void setup() {
+
+  //ground
+  digitalWrite( 9 , LOW );  
+  pinMode( 9 , OUTPUT );
+  
+  if (!BLE.begin()) {
+    
+    Serial.println("BLE Failed!");
+      while (1);
+        }
+  if (!IMU.begin()) {
+    Serial.println("Failed to initialize IMU!");
+    while (1);
+  }
+
+    if (!HTS.begin()) {
+      
+    Serial.println("Failed to initialize HTS!");
+     }
+
+
+
+
+ // calcualte angle
+  float x, y, z;
+  if (IMU.accelerationAvailable()) {
+            IMU.readAcceleration(x, y, z);
+      float yz1= sqrt((y * y) + (z * z));
+      double pitch1 = atan2(yz1,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch1);
+      delay(200);
+
+            IMU.readAcceleration(x, y, z);
+      float yz2= sqrt((y * y) + (z * z));
+      double pitch2 = atan2(yz2,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch2);
+      delay(200);
+     
+            IMU.readAcceleration(x, y, z);
+      float yz3= sqrt((y * y) + (z * z));
+      double pitch3 = atan2(yz3,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch3);
+      delay(200);
+     
+            IMU.readAcceleration(x, y, z);
+      float yz4= sqrt((y * y) + (z * z));
+      double pitch4 = atan2(yz4,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch4);
+      delay(200);
+
+            IMU.readAcceleration(x, y, z);
+      float yz5= sqrt((y * y) + (z * z));
+      double pitch5 = atan2(yz5,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch5);
+      delay(200);
+
+          IMU.readAcceleration(x, y, z);
+      float yz6= sqrt((y * y) + (z * z));
+      double pitch6 = atan2(yz6,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch6);
+      delay(200);
+
+                IMU.readAcceleration(x, y, z);
+      float yz7= sqrt((y * y) + (z * z));
+      double pitch7 = atan2(yz7,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch7);
+      delay(200);
+
+          IMU.readAcceleration(x, y, z);
+      float yz8= sqrt((y * y) + (z * z));
+      double pitch8 = atan2(yz8,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch8);
+      delay(200);
+
+               IMU.readAcceleration(x, y, z);
+      float yz9= sqrt((y * y) + (z * z));
+      double pitch9 = atan2(yz9,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch9);
+      delay(200);
+
+                IMU.readAcceleration(x, y, z);
+      float yz10= sqrt((y * y) + (z * z));
+      double pitch10 = atan2(yz10,x)*180/PI;
+      Serial.print("Angle : ");
+      Serial.println(pitch10);
+     
+     
+     IMU.end();  
+     
+      pitch = (pitch1 + pitch2 + pitch3 + pitch4 + pitch5 + pitch6 + pitch7 + pitch8 + pitch9 + pitch10) / 10;
+
+      Serial.print("Angle : ");
+      Serial.println(pitch);
+
+}
+
+
+
+ float temperature = HTS.readTemperature(FAHRENHEIT);
+ noDec_temp = temperature + 0.5; // = rounded
+ if (!HTS.begin()) {
+   /*
+    //ds18b20 temp
+      MaximWire::Discovery discovery = bus.Discover();
+        MaximWire::Address address;
+        discovery.FindNextDevice(address);
+                MaximWire::DS18B20 device(address);
+                float temp_ds18b20 = device.GetTemperature<float>(bus);
+                Serial.print("Probe Temperature: ");
+                Serial.print(temp_ds18b20);
+                Serial.println(" °C");
+                device.Update(bus);
+                   double  f_temp = temp_ds18b20 * 9/5 + 32; // fahrenhiet
+                   noDec_temp = f_temp + 0.5; // rounded
+                   Serial.println(noDec_temp);  
+    //ds18b20 temp END
+*/
+  }
+
+
+
+HTS.end();
+ 
+  //Serial.println(humidity);
+  Serial.print("Temperature HTS : ");
+  Serial.println(temperature);
+  Serial.print("Temp  : ");
+  Serial.println(noDec_temp);
+
+ // lowest power
+  digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+ digitalWrite(PIN_ENABLE_I2C_PULLUP, LOW);
+ 
+
+  
+ 
+  // LEDs off
+  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LED_PWR, LOW);
+  
+}
+
+
+
+
+void loop(){
+
+
+ // 2 min Ping evey 9 sec, then restart.
+
+ digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);  
+startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+    startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+      startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+    startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+      digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+    startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+    startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+  digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);  
+startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+    startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+      startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+    startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+      digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+    startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+    startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+      digitalWrite(PIN_ENABLE_SENSORS_3V3, HIGH);
+    startBeacon();
+  Serial.println("Ping as Ibeacon");
+  stopBeacon();
+    digitalWrite(PIN_ENABLE_SENSORS_3V3, LOW);
+  delay(9000);
+  
+  
+  BLE.end();
+ 
+   
+
+
+
+
+//reset Arduino
+NVIC_SystemReset();
+
+
+
+} //end of loop
+
+void startBeacon(){
+
+// turning decimal temperature into bytes for uuid sending
+
+  byte highT = highByte(noDec_temp);
+  byte lowT = lowByte(noDec_temp);
+
+
+
+
+// turning decimal Angle into bytes for uuid sending
+  bigAngle = pitch*10; // 1000 = dårligt; 100 = 6.755 istedet for 67,55.; 10 = 0.679 insteed of 67,9.; 1= 0.067
+  sendAngle = bigAngle;
+  byte highA = highByte(sendAngle);
+  byte lowA = lowByte(sendAngle);
+
+
+// making uuid, including temp and gravity + sending
+  byte data[25]={
+    
+    0X4C,0x00, //setting for iBeacons
+    0x02,0x15,
+    0xa4,0x95, 
+    0xbb,0x80, // color id, Choose Tilt colour to repeat. 0=All, 1=Red, 2=Green, 3=Black, 4=Purple, 5=Orange, 6=Blue, 7=Yellow, 8=Pink.
+    0xc5,0xb1, 
+    0x4b,0x44, 
+    0xb5,0x12, 
+    0x13,0x70, 
+    0xf0,0x2d, 
+    0x74,0xde, 
+    highT,
+    lowT,
+    highA,
+    lowA,
+    0x99 
+  };
+  BLE.setManufacturerData(data, 25);// AGGIUNGE IL MANUFACT
+  BLE.advertise();
+}
+
+void stopBeacon(){
+  BLE.stopAdvertise();
+}
